@@ -27,12 +27,15 @@ const scillaCtrl = require('./components/scilla/scilla');
 const walletCtrl = require('./components/wallet/wallet');
 const blockchain = require('./components/blockchain');
 const {
-  InterpreterError, BalanceError, MultiContractError, RPCError,
+  InterpreterError,
+  BalanceError,
+  MultiContractError,
+  RPCError,
 } = require('./components/CustomErrors');
 const { logVerbose, consolePrint } = require('./utilities');
 const config = require('./config');
 
-const logLabel = ('LOGIC');
+const logLabel = 'LOGIC';
 
 const errorCodes = zCore.RPCErrorCode;
 
@@ -49,7 +52,8 @@ const contractAddressesByTransactionID = {}; // transaction hash => contract add
  */
 const computeContractAddr = (senderAddr) => {
   const userNonce = walletCtrl.getBalance(senderAddr).nonce;
-  return hashjs.sha256()
+  return hashjs
+    .sha256()
     .update(senderAddr, 'hex')
     .update(bytes.intToHexArray(userNonce, 16).join(''), 'hex')
     .digest('hex')
@@ -121,7 +125,6 @@ const checkTransactionJson = (data) => {
 };
 
 module.exports = {
-
   exportData: () => {
     const data = {};
     data.transactions = transactions;
@@ -136,14 +139,14 @@ module.exports = {
   },
 
   /**
-  * Function that handles the create transaction requests
-  * @async
-  * @method processCreateTxn
-  * @param { Object } data : Message object passed from client through server.js
-  * @param { Object } options : List of options passed from server.js
-  * @returns { String } : Transaction hash
-  * Throws in the event of error. Caller should catch or delegate these errors
-  */
+   * Function that handles the create transaction requests
+   * @async
+   * @method processCreateTxn
+   * @param { Object } data : Message object passed from client through server.js
+   * @param { Object } options : List of options passed from server.js
+   * @returns { String } : Transaction hash
+   * Throws in the event of error. Caller should catch or delegate these errors
+   */
   processCreateTxn: async (data, options) => {
     logVerbose(logLabel, 'Processing transaction...');
     logVerbose(logLabel, `Payload well-formed? ${checkTransactionJson(data)}`);
@@ -214,34 +217,79 @@ module.exports = {
         }
 
         logVerbose(logLabel, 'Running scilla interpreter now');
-        walletCtrl.increaseNonce(senderAddress);
+
         // Always increase nonce whenever the interpreter is run
         // Interpreter can throw an InterpreterError
+        walletCtrl.increaseNonce(senderAddress);
 
-        const responseData = await scillaCtrl.executeScillaRun(
-          payload,
-          contractAddr,
-          senderAddress,
-          dir,
-          currentBNum,
-        );
-        logVerbose(logLabel, 'Scilla interpreter completed');
+        const transitionPayments = [];
 
-        const nextAddr = responseData.nextAddress;
-        const bnGasRemaining = new BN(responseData.gasRemaining);
-        const bnGasConsumed = bnGasLimit.sub(bnGasRemaining);
-        const gasConsumedInZil = bnGasPrice.mul(bnGasConsumed);
-        const deductableAmount = gasConsumedInZil.add(bnAmount);
-        logVerbose(logLabel, `Gas Consumed in Zils ${gasConsumedInZil.toString()}`);
-        logVerbose(logLabel, `Gas Consumed: ${bnGasConsumed.toString()}`);
-        walletCtrl.deductFunds(senderAddress, deductableAmount);
+        // payload, newContractAddr, senderAddr, dir, currentBnum
+        let bnGasRemaining = bnGasLimit;
+        const events = [];
+        let callsLeft = 6;
+        // eslint-disable-next-line no-inner-declarations
+        const executeTransition = async (payload, contractAddress, senderAddress) => {
+          if (callsLeft < 1) throw new Error('Callstack too high');
+          if (bnGasRemaining.lt(new BN(0))) throw new Error('Not Enough Gas');
 
-        // FIXME: Support multicontract calls
-        if (nextAddr !== '0'.repeat(40) && nextAddr.substring(2) !== senderAddress) {
-          throw new MultiContractError('Multi-contract calls are not supported yet.');
-        }
+          const responseData = await scillaCtrl.executeScillaRun(
+            payload,
+            contractAddress,
+            senderAddress,
+            dir,
+            currentBNum,
+          );
+
+          if (responseData.retMsg && responseData.retMsg.events) {
+            events.push(responseData.retMsg.events.map(e => ({ ...e, address: payload.toAddr })));
+          }
+
+          callsLeft -= 1;
+
+          // Why won't the balances work out
+          if (responseData.retMsg._accepted && payload.amount) {
+            // const amount = new BN(payload.amount || 0);
+          }
+
+          bnGasRemaining = bnGasRemaining.sub(new BN(responseData.gasRemaining));
+
+          console.log(`responseData: ${JSON.stringify(responseData, null, 2)}`);
+
+          if (
+            responseData.nextAddress !== '0'.repeat(40)
+            && responseData.nextAddress.substring(2) !== payload.toAddr
+          ) {
+            return executeTransition(
+              {
+                ...payload,
+                toAddr: responseData.nextAddress.replace('0x', '').toLowerCase(),
+                amount: responseData.retMsg.message._amount || '0',
+                gasLimit: bnGasRemaining.toString(10),
+                data: JSON.stringify(responseData.retMsg.message),
+                code: '',
+              },
+              null,
+              payload.toAddr.replace('0x', '').toLowerCase(),
+            );
+          }
+        };
 
         const isDeployment = payload.code && payload.toAddr === '0'.repeat(40);
+
+        walletCtrl.deductFunds(senderAddress.replace('0x', ''), new BN(payload.amount));
+
+        await executeTransition(payload, isDeployment ? contractAddr : null, senderAddress);
+
+        if (events) receiptInfo.event_logs = events;
+
+        logVerbose(logLabel, 'Scilla interpreter completed');
+
+        const bnGasConsumed = bnGasLimit.sub(bnGasRemaining);
+        const gasConsumedInZil = bnGasPrice.mul(bnGasConsumed);
+        logVerbose(logLabel, `Gas Consumed in Zils ${gasConsumedInZil.toString()}`);
+        logVerbose(logLabel, `Gas Consumed: ${bnGasConsumed.toString()}`);
+
         // Only update if it is a deployment call
         if (isDeployment) {
           logVerbose(logLabel, `Contract deployed at: ${contractAddr}`);
@@ -262,6 +310,8 @@ module.exports = {
         } else {
           // Placeholder msg - since there's no shards in Kaya RPC
           responseObj.Info = 'Contract Txn, Shards Match of the sender and receiver';
+
+          walletCtrl.deductFunds(senderAddress, gasConsumedInZil);
         }
 
         receiptInfo.cumulative_gas = bnGasConsumed.toString();
@@ -288,11 +338,6 @@ module.exports = {
         receiptInfo.success = false;
         confirmTransaction(payload, txnId, receiptInfo);
         logVerbose(logLabel, 'Transaction is logged but it is not accepted due to scilla errors.');
-      } else if (err instanceof MultiContractError) {
-        // Msg: Contract Txn, Sent To Ds
-        console.log('Multi-contract calls not supported.');
-        responseObj.Info = 'Contract Txn, Sent To Ds';
-        // Do not deduct gas for the time being
       } else {
         // Propagate uncaught error to client
         console.log('Uncaught error');
@@ -387,7 +432,11 @@ module.exports = {
     const contractAddress = data[0];
     if (contractAddress == null || !validation.isAddress(contractAddress)) {
       consolePrint('Invalid request');
-      throw new RPCError('Address size not appropriate', errorCodes.RPC_INVALID_ADDRESS_OR_KEY, null);
+      throw new RPCError(
+        'Address size not appropriate',
+        errorCodes.RPC_INVALID_ADDRESS_OR_KEY,
+        null,
+      );
     }
     const filePath = `${dataPath}${contractAddress.toLowerCase()}_${fileType}.${ext}`;
     logVerbose(logLabel, `Retrieving data from ${filePath}`);
@@ -426,7 +475,11 @@ module.exports = {
     logVerbose(logLabel, `Getting smart contracts created by ${addr}`);
     if (addr === null || !validation.isAddress(addr)) {
       console.log('Invalid request');
-      throw new RPCError('Address size not appropriate', errorCodes.RPC_INVALID_ADDRESS_OR_KEY, null);
+      throw new RPCError(
+        'Address size not appropriate',
+        errorCodes.RPC_INVALID_ADDRESS_OR_KEY,
+        null,
+      );
     }
 
     const stateLists = [];

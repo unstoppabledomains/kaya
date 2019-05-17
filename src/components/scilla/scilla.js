@@ -78,7 +78,6 @@ const runRemoteCheckerAsync = async (filepath) => {
   }
 };
 
-
 /**
  * Runs the remote interpreter (currently hosted by zilliqa)
  * @async
@@ -183,7 +182,6 @@ const runLocalCheckerAsync = async (cmdOptions) => {
 };
 
 module.exports = {
-
   /**
    * Takes arguments from `logic.js` and runs the scilla interpreter
    *
@@ -197,13 +195,13 @@ module.exports = {
    * @param { String } gasLimit - gasLimit specified by the caller
    * @returns { Object } consisting of `gasRemaining and nextAddress`
    */
-  executeScillaRun: async (payload, newContractAddr, senderAddr, dir, currentBnum) => {
+  executeScillaRun: async (payload, newContractAddr, senderAddr, dir, currentBNum) => {
     // Get the blocknumber into a json file
     const blockchainPath = `${dir}blockchain.json`;
-    makeBlockchainJson(currentBnum, blockchainPath);
+    makeBlockchainJson(currentBNum, blockchainPath);
 
     const isCodeDeployment = payload.code && payload.toAddr === '0'.repeat(40);
-    const contractAddr = ((isCodeDeployment) ? newContractAddr : payload.toAddr).toLowerCase();
+    const contractAddr = (isCodeDeployment ? newContractAddr : payload.toAddr).toLowerCase();
 
     const initPath = `${dir}${contractAddr}_init.json`;
     const codePath = `${dir}${contractAddr}_code.scilla`;
@@ -211,7 +209,12 @@ module.exports = {
     const statePath = `${dir}${contractAddr}_state.json`;
     const msgPath = `${dir}${payload.toAddr}_message.json`;
 
-    const standardOpt = ['-libdir', config.constants.smart_contract.SCILLA_LIB, '-gaslimit', payload.gasLimit];
+    const standardOpt = [
+      '-libdir',
+      config.constants.smart_contract.SCILLA_LIB,
+      '-gaslimit',
+      payload.gasLimit,
+    ];
     const initOpt = ['-init', initPath];
     const outputOpt = ['-o', outputPath];
     const codeOpt = ['-i', codePath];
@@ -234,7 +237,7 @@ module.exports = {
       // const thisCreationBlock = {
       //   vname: '_creation_block',
       //   type: 'BNum',
-      //   value: `${currentBnum}`,
+      //   value: `${currentBNum}`,
       // };
 
       const deploymentPayload = [...acceptedPayload, thisAddr];
@@ -307,14 +310,15 @@ module.exports = {
     const responseData = {};
     responseData.gasRemaining = retMsg.gas_remaining;
 
+    responseData.retMsg = retMsg;
     // Obtains the next address based on the message
     if (retMsg.message != null) {
       logVerbose(logLabel, `Next address: ${retMsg.message._recipient}`);
       responseData.nextAddress = retMsg.message._recipient;
+    } else {
+      // Contract deployment do not have the next address
+      responseData.nextAddress = '0'.repeat(40);
     }
-    // Contract deployment do not have the next address
-    responseData.nextAddress = '0'.repeat(40);
-
     return responseData;
   },
 };
