@@ -73,6 +73,8 @@ const confirmTransaction = (payload, transactionID, receiptInfo) => {
   const txnDetails = {
     ID: transactionID,
     amount: payload.amount,
+    gasLimit: payload.gasLimit,
+    gasPrice: payload.gasPrice,
     nonce: payload.nonce,
     receipt: receiptInfo,
     senderPubKey: payload.pubKey,
