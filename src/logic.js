@@ -219,8 +219,6 @@ module.exports = {
         // Interpreter can throw an InterpreterError
         walletCtrl.increaseNonce(senderAddress);
 
-        const transitionPayments = [];
-
         // payload, newContractAddr, senderAddr, dir, currentBnum
         let bnGasRemaining = bnGasLimit;
         const events = [];
@@ -249,7 +247,7 @@ module.exports = {
             // const amount = new BN(payload.amount || 0);
           }
 
-          bnGasRemaining = bnGasRemaining.sub(new BN(responseData.gasRemaining));
+          bnGasRemaining = new BN(responseData.gasRemaining);
 
           // console.log(`responseData: ${JSON.stringify(responseData, null, 2)}`);
 
