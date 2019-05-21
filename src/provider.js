@@ -1,17 +1,21 @@
+const { isTxParams } = require('@zilliqa-js/account/dist/util');
 const logic = require('./logic');
 const wallet = require('./components/wallet/wallet');
 const config = require('./config');
-//const { BaseProvider } = require('@zilliqa-js/core/dist/providers/base');
+const { RPCError } = require('./components/CustomErrors');
 
 class Provider {
-  constructor(options) {
+  constructor(options, fixtures) {
     this.options = options;
+
+    if (fixtures) wallet.loadAccounts(fixtures);
+
     this.middleware = {
       request: {
-        use: (fn, match) => { },
+        use: (fn, match) => {},
       },
       response: {
-        use: (fn, match) => { },
+        use: (fn, match) => {},
       },
     };
   }
@@ -24,9 +28,16 @@ class Provider {
    */
   async send(method, ...params) {
     try {
-      let data = await this.rpcResponse(method, ...params)
-      return {result: data};
-    } catch(err) {
+      const data = method === 'CreateTransaction' && isTxParams(params[0])
+        ? await this.rpcResponse('CreateTransaction', {
+          ...params[0],
+          amount: params[0].amount.toString(),
+          gasPrice: params[0].gasPrice.toString(),
+          gasLimit: params[0].gasLimit.toString(),
+        })
+        : await this.rpcResponse(method, ...params);
+      return { result: data };
+    } catch (err) {
       return {
         error: {
           code: err.code,
@@ -56,7 +67,7 @@ class Provider {
       case 'GetSmartContracts':
         return logic.processGetSmartContracts(params, this.options.dataPath);
       case 'CreateTransaction':
-        return await logic.processCreateTxn(params, this.options);
+        return logic.processCreateTxn(params, this.options);
       case 'GetTransaction':
         return logic.processGetTransaction(params);
       case 'GetRecentTransactions':
@@ -66,9 +77,13 @@ class Provider {
       case 'GetMinimumGasPrice':
         return config.blockchain.minimumGasPrice.toString();
       default:
-        throw new RPCError('METHOD_NOT_FOUND: The method being requested is not available on this server', errorCodes.RPC_INVALID_REQUEST, null);
-    }     
+        throw new RPCError(
+          'METHOD_NOT_FOUND: The method being requested is not available on this server',
+          errorCodes.RPC_INVALID_REQUEST,
+          null,
+        );
+    }
   }
 }
 
-module.exports = Provider
+module.exports = Provider;

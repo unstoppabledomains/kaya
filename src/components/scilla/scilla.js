@@ -151,7 +151,6 @@ const runLocalInterpreterAsync = async (cmdOptions, outputPath) => {
   }
 
   const result = await execFileAsync(SCILLA_BIN_PATH, cmdOptions);
-  console.log(result);
 
   if (result.stderr !== '') {
     console.log(`Interpreter error: ${result.stderr}`);
@@ -305,7 +304,7 @@ module.exports = {
 
     fs.writeFileSync(statePath, newState);
     logVerbose(logLabel, `State logged down in ${statePath}`);
-    console.log(`Contract Address Deployed: ${contractAddr}`);
+    if (isCodeDeployment) logVerbose(logLabel, `Contract Address Deployed: ${contractAddr}`);
 
     const responseData = {};
     responseData.gasRemaining = retMsg.gas_remaining;

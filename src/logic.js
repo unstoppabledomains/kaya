@@ -26,12 +26,7 @@ const zAccount = require('@zilliqa-js/account');
 const scillaCtrl = require('./components/scilla/scilla');
 const walletCtrl = require('./components/wallet/wallet');
 const blockchain = require('./components/blockchain');
-const {
-  InterpreterError,
-  BalanceError,
-  MultiContractError,
-  RPCError,
-} = require('./components/CustomErrors');
+const { InterpreterError, BalanceError, RPCError } = require('./components/CustomErrors');
 const { logVerbose, consolePrint } = require('./utilities');
 const config = require('./config');
 
@@ -256,7 +251,7 @@ module.exports = {
 
           bnGasRemaining = bnGasRemaining.sub(new BN(responseData.gasRemaining));
 
-          console.log(`responseData: ${JSON.stringify(responseData, null, 2)}`);
+          // console.log(`responseData: ${JSON.stringify(responseData, null, 2)}`);
 
           if (
             responseData.nextAddress !== '0'.repeat(40)

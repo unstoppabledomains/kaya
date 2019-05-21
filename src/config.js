@@ -51,9 +51,9 @@ module.exports = {
       NORMAL_TRAN_GAS: 10,
     },
     smart_contract: {
-      SCILLA_RUNNER: './src/components/scilla/scilla-runner',
-      SCILLA_CHECKER: './src/components/scilla/scilla-checker',
-      SCILLA_LIB: './src/components/scilla/stdlib',
+      SCILLA_RUNNER: `${__dirname}/components/scilla/scilla-runner`,
+      SCILLA_CHECKER: `${__dirname}/components/scilla/scilla-checker`,
+      SCILLA_LIB: `${__dirname}/components/scilla/stdlib`,
     },
   },
 
@@ -64,7 +64,7 @@ Settings for the scilla interpreter
 - url: URL to the remote scilla interpreter
 */
   scilla: {
-    remote: true,
+    remote: false,
     CHECKER_URL: 'https://scilla-runner.zilliqa.com/contract/check',
     RUNNER_URL: 'https://scilla-runner.zilliqa.com/contract/call',
   },
