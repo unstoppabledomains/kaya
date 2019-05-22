@@ -253,12 +253,22 @@ module.exports = {
 
           if (
             responseData.nextAddress !== '0'.repeat(40)
-            && responseData.nextAddress.substring(2) !== payload.toAddr
+            && responseData.nextAddress.replace('0x', '') !== payload.toAddr.replace('0x', '')
           ) {
-            return executeTransition(
+            // console.log(
+            //   'toAddr, is account, tag',
+            //   responseData.nextAddress,
+            //   Boolean(walletCtrl.getAccounts()[responseData.nextAddress]),
+            //   responseData.retMsg.message._tag,
+            // );
+
+            if (walletCtrl.getAccounts()[responseData.nextAddress.replace('0x', '')]) return;
+            if (responseData.retMsg.message._tag === '') return;
+
+            await executeTransition(
               {
-                ...payload,
-                toAddr: responseData.nextAddress.replace('0x', '').toLowerCase(),
+                // ...payload,
+                toAddr: responseData.nextAddress.replace('0x', ''),
                 amount: responseData.retMsg.message._amount || '0',
                 gasLimit: bnGasRemaining.toString(10),
                 data: JSON.stringify(responseData.retMsg.message),
@@ -438,7 +448,11 @@ module.exports = {
 
     if (!fs.existsSync(filePath)) {
       consolePrint(`No ${type} file found (Contract: ${contractAddress}`);
-      throw new RPCError('Address does not exist', errorCodes.RPC_INVALID_ADDRESS_OR_KEY, null);
+      throw new RPCError(
+        `Address ${contractAddress.toLowerCase()}does not exist`,
+        errorCodes.RPC_INVALID_ADDRESS_OR_KEY,
+        null,
+      );
     }
 
     const responseData = fs.readFileSync(filePath, 'utf-8');
