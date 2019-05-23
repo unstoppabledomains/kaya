@@ -296,13 +296,23 @@ module.exports = {
       retMsg = await runRemoteInterpreterAsync(apiReqParams);
     }
 
-    // Extract state from tmp/out.json
-    let newState = JSON.stringify(retMsg.states);
+    // Scilla runner doesn't return the balance correctly
+    // We need to set it manually
     if (isCodeDeployment) {
-      newState = JSON.stringify(initializeContractState(payload.amount));
+      logVerbose("Payload amount", payload.amount)
+      retMsg.states.forEach((state) => {
+        if (state.vname == "_balance") {
+          state.value = payload.amount;
+        }
+      });
     }
+    fs.writeFileSync(statePath, JSON.stringify(retMsg.states));
+    //let newState = JSON.stringify(retMsg.states);
+    //if (isCodeDeployment) {
+      //newState = JSON.stringify(initializeContractState(payload.amount));
+    //}
 
-    fs.writeFileSync(statePath, newState);
+    //fs.writeFileSync(statePath, newState);
     logVerbose(logLabel, `State logged down in ${statePath}`);
     if (isCodeDeployment) logVerbose(logLabel, `Contract Address Deployed: ${contractAddr}`);
 
