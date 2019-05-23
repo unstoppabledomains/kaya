@@ -255,14 +255,10 @@ module.exports = {
             responseData.nextAddress !== '0'.repeat(40)
             && responseData.nextAddress.replace('0x', '') !== payload.toAddr.replace('0x', '')
           ) {
-            // console.log(
-            //   'toAddr, is account, tag',
-            //   responseData.nextAddress,
-            //   Boolean(walletCtrl.getAccounts()[responseData.nextAddress]),
-            //   responseData.retMsg.message._tag,
-            // );
+            const initPath = `${dir}${responseData.nextAddress.replace('0x', '')}_init.json`;
+            const codePath = `${dir}${responseData.nextAddress.replace('0x', '')}_code.scilla`;
 
-            if (walletCtrl.getAccounts()[responseData.nextAddress.replace('0x', '')]) return;
+            if (!fs.existsSync(initPath) || !fs.existsSync(codePath)) return;
             if (responseData.retMsg.message._tag === '') return;
 
             await executeTransition(

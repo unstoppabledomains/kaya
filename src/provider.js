@@ -1,8 +1,12 @@
+const zCore = require('@zilliqa-js/core');
 const { isTxParams } = require('@zilliqa-js/account/dist/util');
 const logic = require('./logic');
 const wallet = require('./components/wallet/wallet');
 const config = require('./config');
 const { RPCError } = require('./components/CustomErrors');
+const { addBnum } = require('./components/blockchain');
+
+const errorCodes = zCore.RPCErrorCode;
 
 class Provider {
   constructor(options, fixtures) {
@@ -76,6 +80,8 @@ class Provider {
         return logic.processGetContractAddressByTransactionID(params);
       case 'GetMinimumGasPrice':
         return config.blockchain.minimumGasPrice.toString();
+      case 'KayaMine':
+        return addBnum();
       default:
         throw new RPCError(
           'METHOD_NOT_FOUND: The method being requested is not available on this server',
