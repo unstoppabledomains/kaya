@@ -221,7 +221,7 @@ module.exports = {
 
         // payload, newContractAddr, senderAddr, dir, currentBnum
         let bnGasRemaining = bnGasLimit;
-        const events = [];
+        var events = [];
         let callsLeft = 6;
         // eslint-disable-next-line no-inner-declarations
         const executeTransition = async (payload, contractAddress, senderAddress) => {
@@ -237,7 +237,7 @@ module.exports = {
           );
 
           if (responseData.retMsg && responseData.retMsg.events) {
-            events.push(responseData.retMsg.events.map(e => ({ ...e, address: payload.toAddr })));
+            events = responseData.retMsg.events.map(e => ({ ...e, address: payload.toAddr }));
           }
 
           callsLeft -= 1;
@@ -282,7 +282,7 @@ module.exports = {
 
         await executeTransition(payload, isDeployment ? contractAddr : null, senderAddress);
 
-        if (events) receiptInfo.event_logs = events;
+        if (events.length) receiptInfo.event_logs = events;
 
         logVerbose(logLabel, 'Scilla interpreter completed');
 
