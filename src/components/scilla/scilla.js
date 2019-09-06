@@ -233,13 +233,19 @@ module.exports = {
         value: `0x${contractAddr}`,
       };
 
+      const scillaVersion = {
+        vname: "_scilla_version",
+        type: "Uint32",
+        value: "0",
+      };
+
       // const thisCreationBlock = {
       //   vname: '_creation_block',
       //   type: 'BNum',
       //   value: `${currentBNum}`,
       // };
 
-      const deploymentPayload = [...acceptedPayload, thisAddr];
+      const deploymentPayload = [...acceptedPayload, thisAddr, scillaVersion];
       const initParams = JSON.stringify(deploymentPayload);
       fs.writeFileSync(initPath, initParams);
 
