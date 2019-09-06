@@ -239,13 +239,13 @@ module.exports = {
         value: "0",
       };
 
-      // const thisCreationBlock = {
-      //   vname: '_creation_block',
-      //   type: 'BNum',
-      //   value: `${currentBNum}`,
-      // };
+      const thisCreationBlock = {
+        vname: "_creation_block",
+        type: "BNum",
+        value: `${currentBNum}`,
+      };
 
-      const deploymentPayload = [...acceptedPayload, thisAddr, scillaVersion];
+      const deploymentPayload = [...acceptedPayload, thisAddr, scillaVersion, thisCreationBlock];
       const initParams = JSON.stringify(deploymentPayload);
       fs.writeFileSync(initPath, initParams);
 
