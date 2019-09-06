@@ -276,7 +276,7 @@ module.exports = {
           }
         };
 
-        const isDeployment = payload.code && payload.toAddr === "0".repeat(40);
+        const isDeployment = Boolean(payload.code);
 
         walletCtrl.deductFunds(senderAddress.replace("0x", ""), new BN(payload.amount));
 
