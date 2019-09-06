@@ -74,7 +74,7 @@ const confirmTransaction = (payload, transactionID, receiptInfo) => {
     receipt: receiptInfo,
     senderPubKey: payload.pubKey,
     signature: payload.signature,
-    toAddr: payload.toAddr,
+    toAddr: payload.toAddr.replace("0x", "").toLowerCase(),
     version: payload.version,
   };
   transactions[transactionID] = txnDetails;
@@ -193,7 +193,7 @@ module.exports = {
         const totalSum = bnAmount.add(bnTransferCostInZils);
         walletCtrl.deductFunds(senderAddress, totalSum);
         walletCtrl.increaseNonce(senderAddress);
-        walletCtrl.addFunds(payload.toAddr.toLowerCase(), bnAmount);
+        walletCtrl.addFunds(payload.toAddr.replace("0x", "").toLowerCase(), bnAmount);
         responseObj.Info = "Non-contract txn, sent to shard";
         receiptInfo.cumulative_gas = bnTransferGas.toString();
         receiptInfo.success = true;
@@ -237,7 +237,10 @@ module.exports = {
           );
 
           if (responseData.retMsg && responseData.retMsg.events) {
-            events = responseData.retMsg.events.map(e => ({ ...e, address: payload.toAddr }));
+            events = responseData.retMsg.events.map(e => ({
+              ...e,
+              address: payload.toAddr.replace("0x", "").toLowerCase(),
+            }));
           }
 
           callsLeft -= 1;
@@ -253,7 +256,8 @@ module.exports = {
 
           if (
             responseData.nextAddress !== "0".repeat(40) &&
-            responseData.nextAddress.replace("0x", "") !== payload.toAddr.replace("0x", "")
+            responseData.nextAddress.replace("0x", "") !==
+              payload.toAddr.replace("0x", "").toLowerCase()
           ) {
             const initPath = `${dir}${responseData.nextAddress.replace("0x", "")}_init.json`;
             const codePath = `${dir}${responseData.nextAddress.replace("0x", "")}_code.scilla`;

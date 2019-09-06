@@ -200,7 +200,9 @@ module.exports = {
     makeBlockchainJson(currentBNum, blockchainPath);
 
     const isCodeDeployment = Boolean(payload.code);
-    const contractAddr = (isCodeDeployment ? newContractAddr : payload.toAddr).toLowerCase();
+    const contractAddr = (isCodeDeployment ? newContractAddr : payload.toAddr)
+      .replace("0x", "")
+      .toLowerCase();
 
     const initPath = `${dir}${contractAddr}_init.json`;
     const codePath = `${dir}${contractAddr}_code.scilla`;
