@@ -16,21 +16,21 @@
 */
 
 // logic.js : Logic Script
-const hashjs = require('hash.js');
-const fs = require('fs');
-const BN = require('bn.js');
-const zCrypto = require('@zilliqa-js/crypto');
-const zCore = require('@zilliqa-js/core');
-const { bytes, validation } = require('@zilliqa-js/util');
-const zAccount = require('@zilliqa-js/account');
-const scillaCtrl = require('./components/scilla/scilla');
-const walletCtrl = require('./components/wallet/wallet');
-const blockchain = require('./components/blockchain');
-const { InterpreterError, BalanceError, RPCError } = require('./components/CustomErrors');
-const { logVerbose, consolePrint } = require('./utilities');
-const config = require('./config');
+const hashjs = require("hash.js");
+const fs = require("fs");
+const BN = require("bn.js");
+const zCrypto = require("@zilliqa-js/crypto");
+const zCore = require("@zilliqa-js/core");
+const { bytes, validation } = require("@zilliqa-js/util");
+const zAccount = require("@zilliqa-js/account");
+const scillaCtrl = require("./components/scilla/scilla");
+const walletCtrl = require("./components/wallet/wallet");
+const blockchain = require("./components/blockchain");
+const { InterpreterError, BalanceError, RPCError } = require("./components/CustomErrors");
+const { logVerbose, consolePrint } = require("./utilities");
+const config = require("./config");
 
-const logLabel = 'LOGIC';
+const logLabel = "LOGIC";
 
 const errorCodes = zCore.RPCErrorCode;
 
@@ -45,13 +45,13 @@ const contractAddressesByTransactionID = {}; // transaction hash => contract add
  * @param { String } senderAddr
  * @returns { String } contract address to be deployed
  */
-const computeContractAddr = (senderAddr) => {
+const computeContractAddr = senderAddr => {
   const userNonce = walletCtrl.getBalance(senderAddr).nonce;
   return hashjs
     .sha256()
-    .update(senderAddr, 'hex')
-    .update(bytes.intToHexArray(userNonce, 16).join(''), 'hex')
-    .digest('hex')
+    .update(senderAddr, "hex")
+    .update(bytes.intToHexArray(userNonce, 16).join(""), "hex")
+    .digest("hex")
     .slice(24);
 };
 
@@ -87,7 +87,7 @@ const confirmTransaction = (payload, transactionID, receiptInfo) => {
  * @method computeTransactionHash
  * @param { Object } payload : Payload of the message
  */
-const computeTransactionHash = (payload) => {
+const computeTransactionHash = payload => {
   // transactionID is a sha256 digest of txndetails
   const copyPayload = JSON.parse(JSON.stringify(payload));
   delete copyPayload.signature; // txn hash does not include signature
@@ -95,7 +95,7 @@ const computeTransactionHash = (payload) => {
   const transactionHash = hashjs
     .sha256()
     .update(buf)
-    .digest('hex');
+    .digest("hex");
   return transactionHash;
 };
 
@@ -105,17 +105,17 @@ const computeTransactionHash = (payload) => {
  * @param { Object} data : Payload retrieved from message
  * @returns { Boolean } : True if the payload is valid, false if it is not
  */
-const checkTransactionJson = (data) => {
+const checkTransactionJson = data => {
   const CHAIN_ID = config.chainId;
   const MSG_VERSION = config.msgVersion;
   const EXPECTED_VERSION = bytes.pack(CHAIN_ID, MSG_VERSION);
 
-  if (data !== null && typeof data !== 'object') return false;
+  if (data !== null && typeof data !== "object") return false;
   const payload = data[0];
   // User must supply the correct chain_id and msg_version
   if (payload.version !== EXPECTED_VERSION) {
-    console.log('Error: Msg is not well-formed');
-    console.log('Possible fix: Did you specify the correct chain Id and msg version?');
+    console.log("Error: Msg is not well-formed");
+    console.log("Possible fix: Did you specify the correct chain Id and msg version?");
     return false;
   }
   return zAccount.util.isTxParams(payload);
@@ -132,7 +132,7 @@ module.exports = {
   loadData: (txns, contractsByUsers) => {
     transactions = txns;
     createdContractsByUsers = contractsByUsers;
-    logVerbose(logLabel, 'Transactions and contract data loaded.');
+    logVerbose(logLabel, "Transactions and contract data loaded.");
   },
 
   /**
@@ -145,12 +145,12 @@ module.exports = {
    * Throws in the event of error. Caller should catch or delegate these errors
    */
   processCreateTxn: async (data, options) => {
-    logVerbose(logLabel, 'Processing transaction...');
+    logVerbose(logLabel, "Processing transaction...");
     logVerbose(logLabel, `Payload well-formed? ${checkTransactionJson(data)}`);
 
     // Checks the wellformness of the transaction JSON data
     if (!checkTransactionJson(data)) {
-      throw new Error('Invalid Tx Json');
+      throw new Error("Invalid Tx Json");
     }
 
     const responseObj = {};
@@ -177,29 +177,29 @@ module.exports = {
 
     try {
       if (payload.nonce !== userNonce + 1) {
-        throw new BalanceError('Nonce incorrect');
+        throw new BalanceError("Nonce incorrect");
       }
       // check if payload gasPrice is sufficient
       const bnBlockchainGasPrice = new BN(config.blockchain.minimumGasPrice);
       if (bnBlockchainGasPrice.gt(bnGasPrice)) {
-        throw new BalanceError('Insufficient Gas Price');
+        throw new BalanceError("Insufficient Gas Price");
       }
 
       if (!payload.code && !payload.data) {
         // p2p token transfer
-        logVerbose(logLabel, 'Transaction Type: P2P Transfer (Type 1)');
+        logVerbose(logLabel, "Transaction Type: P2P Transfer (Type 1)");
         const bnTransferGas = new BN(config.constants.gas.NORMAL_TRAN_GAS);
         const bnTransferCostInZils = bnTransferGas.mul(bnGasPrice);
         const totalSum = bnAmount.add(bnTransferCostInZils);
         walletCtrl.deductFunds(senderAddress, totalSum);
         walletCtrl.increaseNonce(senderAddress);
         walletCtrl.addFunds(payload.toAddr.toLowerCase(), bnAmount);
-        responseObj.Info = 'Non-contract txn, sent to shard';
+        responseObj.Info = "Non-contract txn, sent to shard";
         receiptInfo.cumulative_gas = bnTransferGas.toString();
         receiptInfo.success = true;
       } else {
         /* contract creation / invoke transition */
-        logVerbose(logLabel, 'Task: Contract Deployment / Create Transaction');
+        logVerbose(logLabel, "Task: Contract Deployment / Create Transaction");
         // take the sha256 hash of address+nonce, then extract the rightmost 20 bytes
         const contractAddr = computeContractAddr(senderAddress);
 
@@ -209,11 +209,11 @@ module.exports = {
         const bnAmountRequiredForTx = bnAmount.add(bnGasLimitInZils);
 
         if (!walletCtrl.sufficientFunds(senderAddress, bnAmountRequiredForTx)) {
-          logVerbose(logLabel, 'Insufficient funds. Returning error to client.');
-          throw new BalanceError('Insufficient balance to process transction');
+          logVerbose(logLabel, "Insufficient funds. Returning error to client.");
+          throw new BalanceError("Insufficient balance to process transction");
         }
 
-        logVerbose(logLabel, 'Running scilla interpreter now');
+        logVerbose(logLabel, "Running scilla interpreter now");
 
         // Always increase nonce whenever the interpreter is run
         // Interpreter can throw an InterpreterError
@@ -225,15 +225,15 @@ module.exports = {
         let callsLeft = 6;
         // eslint-disable-next-line no-inner-declarations
         const executeTransition = async (payload, contractAddress, senderAddress) => {
-          if (callsLeft < 1) throw new Error('Callstack too high');
-          if (bnGasRemaining.lt(new BN(0))) throw new Error('Not Enough Gas');
+          if (callsLeft < 1) throw new Error("Callstack too high");
+          if (bnGasRemaining.lt(new BN(0))) throw new Error("Not Enough Gas");
 
           const responseData = await scillaCtrl.executeScillaRun(
             payload,
             contractAddress,
             senderAddress,
             dir,
-            currentBNum,
+            currentBNum
           );
 
           if (responseData.retMsg && responseData.retMsg.events) {
@@ -252,39 +252,39 @@ module.exports = {
           // console.log(`responseData: ${JSON.stringify(responseData, null, 2)}`);
 
           if (
-            responseData.nextAddress !== '0'.repeat(40)
-            && responseData.nextAddress.replace('0x', '') !== payload.toAddr.replace('0x', '')
+            responseData.nextAddress !== "0".repeat(40) &&
+            responseData.nextAddress.replace("0x", "") !== payload.toAddr.replace("0x", "")
           ) {
-            const initPath = `${dir}${responseData.nextAddress.replace('0x', '')}_init.json`;
-            const codePath = `${dir}${responseData.nextAddress.replace('0x', '')}_code.scilla`;
+            const initPath = `${dir}${responseData.nextAddress.replace("0x", "")}_init.json`;
+            const codePath = `${dir}${responseData.nextAddress.replace("0x", "")}_code.scilla`;
 
             if (!fs.existsSync(initPath) || !fs.existsSync(codePath)) return;
-            if (responseData.retMsg.message._tag === '') return;
+            if (responseData.retMsg.message._tag === "") return;
 
             await executeTransition(
               {
                 // ...payload,
-                toAddr: responseData.nextAddress.replace('0x', ''),
-                amount: responseData.retMsg.message._amount || '0',
+                toAddr: responseData.nextAddress.replace("0x", ""),
+                amount: responseData.retMsg.message._amount || "0",
                 gasLimit: bnGasRemaining.toString(10),
                 data: JSON.stringify(responseData.retMsg.message),
-                code: '',
+                code: "",
               },
               null,
-              payload.toAddr.replace('0x', '').toLowerCase(),
+              payload.toAddr.replace("0x", "").toLowerCase()
             );
           }
         };
 
-        const isDeployment = payload.code && payload.toAddr === '0'.repeat(40);
+        const isDeployment = payload.code && payload.toAddr === "0".repeat(40);
 
-        walletCtrl.deductFunds(senderAddress.replace('0x', ''), new BN(payload.amount));
+        walletCtrl.deductFunds(senderAddress.replace("0x", ""), new BN(payload.amount));
 
-        await executeTransition(payload, isDeployment ? contractAddr : null, senderAddress);
+        await executeTransition(payload, contractAddr, senderAddress);
 
         if (events.length) receiptInfo.event_logs = events;
 
-        logVerbose(logLabel, 'Scilla interpreter completed');
+        logVerbose(logLabel, "Scilla interpreter completed");
 
         const bnGasConsumed = bnGasLimit.sub(bnGasRemaining);
         const gasConsumedInZil = bnGasPrice.mul(bnGasConsumed);
@@ -294,15 +294,15 @@ module.exports = {
         // Only update if it is a deployment call
         if (isDeployment) {
           logVerbose(logLabel, `Contract deployed at: ${contractAddr}`);
-          responseObj.Info = 'Contract Creation txn, sent to shard';
+          responseObj.Info = "Contract Creation txn, sent to shard";
           responseObj.ContractAddress = contractAddr;
 
           // Update address_to_contracts
           if (senderAddress in createdContractsByUsers) {
-            logVerbose(logLabel, 'User has contracts. Appending to list');
+            logVerbose(logLabel, "User has contracts. Appending to list");
             createdContractsByUsers[senderAddress].push(contractAddr);
           } else {
-            logVerbose(logLabel, 'No existing contracts. Creating new entry.');
+            logVerbose(logLabel, "No existing contracts. Creating new entry.");
             createdContractsByUsers[senderAddress] = [contractAddr];
           }
 
@@ -310,7 +310,7 @@ module.exports = {
           logVerbose(logLabel, `TransID: ${txnId} => Contract Address: ${contractAddr}`);
         } else {
           // Placeholder msg - since there's no shards in Kaya RPC
-          responseObj.Info = 'Contract Txn, Shards Match of the sender and receiver';
+          responseObj.Info = "Contract Txn, Shards Match of the sender and receiver";
 
           walletCtrl.deductFunds(senderAddress, gasConsumedInZil);
         }
@@ -321,9 +321,9 @@ module.exports = {
 
       // Confirms transaction by storing the transaction object in-memory
       confirmTransaction(payload, txnId, receiptInfo);
-      logVerbose(logLabel, 'Transaction confirmed by the blockchain');
+      logVerbose(logLabel, "Transaction confirmed by the blockchain");
     } catch (err) {
-      logVerbose(logLabel, 'Transaction is NOT accepted by the blockchain');
+      logVerbose(logLabel, "Transaction is NOT accepted by the blockchain");
 
       // Incorrect Balance (Amt, Nonce) does NOT increase the nonce value
       if (err instanceof BalanceError) {
@@ -331,17 +331,17 @@ module.exports = {
         walletCtrl.deductFunds(senderAddress, deductableZils);
       } else if (err instanceof InterpreterError) {
         // Note: Core zilliqa current deducts based on the CONSTANT.XML file config
-        console.log('Scilla run is not successful.');
+        console.log("Scilla run is not successful.");
         // Deducts the amount of gas as specified in the config.constants settings
         walletCtrl.deductFunds(senderAddress, deductableZils);
         receiptInfo = {};
         receiptInfo.cumulative_gas = bnInvokeGas.toString();
         receiptInfo.success = false;
         confirmTransaction(payload, txnId, receiptInfo);
-        logVerbose(logLabel, 'Transaction is logged but it is not accepted due to scilla errors.');
+        logVerbose(logLabel, "Transaction is logged but it is not accepted due to scilla errors.");
       } else {
         // Propagate uncaught error to client
-        console.log('Uncaught error');
+        console.log("Uncaught error");
         console.log(err);
         throw err;
       }
@@ -360,13 +360,13 @@ module.exports = {
    * @param { Object } data - payload object
    */
 
-  processGetTransaction: (data) => {
+  processGetTransaction: data => {
     if (!data) {
-      logVerbose(logLabel, 'Invalid params');
+      logVerbose(logLabel, "Invalid params");
       const err = new RPCError(
-        'INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised: Size not appropriate',
+        "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised: Size not appropriate",
         errorCodes.RPC_INVALID_PARAMS,
-        null,
+        null
       );
       throw err;
     }
@@ -377,9 +377,9 @@ module.exports = {
       return res;
     }
     const err = new RPCError(
-      'INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised: Size not appropriate',
+      "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised: Size not appropriate",
       errorCodes.RPC_DATABASE_ERROR,
-      null,
+      null
     );
     throw err;
   },
@@ -391,7 +391,7 @@ module.exports = {
    */
 
   processGetRecentTransactions: () => {
-    logVerbose(logLabel, 'Getting Recent Transactions');
+    logVerbose(logLabel, "Getting Recent Transactions");
 
     const txnhashes = Object.keys(transactions);
     const responseObj = {};
@@ -408,23 +408,23 @@ module.exports = {
    */
   processGetDataFromContract: (data, dataPath, type) => {
     const fileType = type.trim().toLowerCase();
-    if (!['init', 'state', 'code'].includes(fileType)) {
+    if (!["init", "state", "code"].includes(fileType)) {
       const err = new RPCError(
-        'INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised: Invalid options flag',
+        "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised: Invalid options flag",
         errorCodes.RPC_INVALID_PARAMS,
-        null,
+        null
       );
       throw err;
     }
-    const ext = fileType === 'code' ? 'scilla' : 'json';
+    const ext = fileType === "code" ? "scilla" : "json";
     logVerbose(logLabel, `Getting SmartContract ${fileType}`);
 
     if (!data) {
-      logVerbose(logLabel, 'Invalid params');
+      logVerbose(logLabel, "Invalid params");
       const err = new RPCError(
-        'INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised: Size not appropriate',
+        "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised: Size not appropriate",
         errorCodes.RPC_INVALID_PARAMS,
-        null,
+        null
       );
       throw err;
     }
@@ -432,11 +432,11 @@ module.exports = {
     // checking contract address's validity
     const contractAddress = data[0];
     if (contractAddress == null || !validation.isAddress(contractAddress)) {
-      consolePrint('Invalid request');
+      consolePrint("Invalid request");
       throw new RPCError(
-        'Address size not appropriate',
+        "Address size not appropriate",
         errorCodes.RPC_INVALID_ADDRESS_OR_KEY,
-        null,
+        null
       );
     }
     const filePath = `${dataPath}${contractAddress.toLowerCase()}_${fileType}.${ext}`;
@@ -447,12 +447,12 @@ module.exports = {
       throw new RPCError(
         `Address ${contractAddress.toLowerCase()}does not exist`,
         errorCodes.RPC_INVALID_ADDRESS_OR_KEY,
-        null,
+        null
       );
     }
 
-    const responseData = fs.readFileSync(filePath, 'utf-8');
-    if (fileType === 'code') {
+    const responseData = fs.readFileSync(filePath, "utf-8");
+    if (fileType === "code") {
       return { code: responseData };
     }
     // handles init and state json after parsing
@@ -469,9 +469,9 @@ module.exports = {
 
   processGetSmartContracts: (data, dataPath) => {
     if (!data) {
-      logVerbose(logLabel, 'Invalid params');
+      logVerbose(logLabel, "Invalid params");
       const err = new Error(
-        'INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised',
+        "INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised"
       );
       throw err;
     }
@@ -479,28 +479,28 @@ module.exports = {
     const addr = data[0].toLowerCase();
     logVerbose(logLabel, `Getting smart contracts created by ${addr}`);
     if (addr === null || !validation.isAddress(addr)) {
-      console.log('Invalid request');
+      console.log("Invalid request");
       throw new RPCError(
-        'Address size not appropriate',
+        "Address size not appropriate",
         errorCodes.RPC_INVALID_ADDRESS_OR_KEY,
-        null,
+        null
       );
     }
 
     const stateLists = [];
     if (!createdContractsByUsers[addr]) {
-      throw new RPCError('Address does not exist', errorCodes.RPC_INVALID_ADDRESS_OR_KEY, null);
+      throw new RPCError("Address does not exist", errorCodes.RPC_INVALID_ADDRESS_OR_KEY, null);
     }
     // Addr found - proceed to append state to return list
     const contracts = createdContractsByUsers[addr];
 
-    contracts.forEach((contractId) => {
+    contracts.forEach(contractId => {
       const statePath = `${dataPath}${contractId.toLowerCase()}_state.json`;
       if (!fs.existsSync(statePath)) {
         console.log(`No state file found (Contract: ${contractId}`);
-        throw new RPCError('Address does not exist', errorCodes.RPC_INVALID_ADDRESS_OR_KEY, null);
+        throw new RPCError("Address does not exist", errorCodes.RPC_INVALID_ADDRESS_OR_KEY, null);
       }
-      const retMsg = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+      const retMsg = JSON.parse(fs.readFileSync(statePath, "utf-8"));
       const contractStateObj = {};
       contractStateObj.address = contractId;
       contractStateObj.state = retMsg;
@@ -516,18 +516,18 @@ module.exports = {
    * @param { Object } data - data object of the payload which contrains transaction hash
    * @returns { String } contractAddress - 20 bytes string
    */
-  processGetContractAddressByTransactionID: (data) => {
-    if ((typeof data === 'object' && data === null) || data[0].length !== 64) {
-      throw new RPCError('Size not appropriate', errorCodes.RPC_INVALID_ADDRESS_OR_KEY, null);
+  processGetContractAddressByTransactionID: data => {
+    if ((typeof data === "object" && data === null) || data[0].length !== 64) {
+      throw new RPCError("Size not appropriate", errorCodes.RPC_INVALID_ADDRESS_OR_KEY, null);
     }
     const transId = data[0];
     if (!transactions[transId]) {
-      throw new Error('Txn Hash not Present');
+      throw new Error("Txn Hash not Present");
     }
 
     const contractAddr = contractAddressesByTransactionID[transId];
     if (!contractAddr) {
-      throw new Error('ID not a contract txn');
+      throw new Error("ID not a contract txn");
     } else {
       return contractAddr;
     }
