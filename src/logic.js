@@ -221,7 +221,7 @@ module.exports = {
 
         // payload, newContractAddr, senderAddr, dir, currentBnum
         let bnGasRemaining = bnGasLimit;
-        var events = [];
+        const events = [];
         let callsLeft = 6;
         // eslint-disable-next-line no-inner-declarations
         const executeTransition = async (payload, contractAddress, senderAddress) => {
@@ -237,7 +237,11 @@ module.exports = {
           );
 
           if (responseData.retMsg && responseData.retMsg.events) {
-            events = responseData.retMsg.events.map(e => ({ ...e, address: payload.toAddr }));
+            const mapEvent = e => ({
+              ...e,
+              address: payload.toAddr,
+            });
+            events.push(...responseData.retMsg.events.map(mapEvent));
           }
 
           callsLeft -= 1;
