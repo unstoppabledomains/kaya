@@ -1,10 +1,10 @@
-const zCore = require("@zilliqa-js/core");
-const { isTxParams } = require("@zilliqa-js/account/dist/util");
-const logic = require("./logic");
-const wallet = require("./components/wallet/wallet");
-const config = require("./config");
-const { RPCError } = require("./components/CustomErrors");
-const { addBnum, getBlockNum } = require("./components/blockchain");
+const zCore = require('@zilliqa-js/core');
+const { isTxParams } = require('@zilliqa-js/account/dist/util');
+const logic = require('./logic');
+const wallet = require('./components/wallet/wallet');
+const config = require('./config');
+const { RPCError } = require('./components/CustomErrors');
+const { addBnum, getBlockNum } = require('./components/blockchain');
 
 const errorCodes = zCore.RPCErrorCode;
 
@@ -13,15 +13,6 @@ class Provider {
     this.options = options;
 
     if (fixtures) wallet.loadAccounts(fixtures);
-
-    this.middleware = {
-      request: {
-        use: (fn, match) => {},
-      },
-      response: {
-        use: (fn, match) => {},
-      },
-    };
   }
 
   /**
@@ -32,15 +23,15 @@ class Provider {
    */
   async send(method, ...params) {
     try {
-      const data =
-        method === "CreateTransaction" && isTxParams(params[0])
-          ? await this.rpcResponse("CreateTransaction", {
-              ...params[0],
-              amount: params[0].amount.toString(),
-              gasPrice: params[0].gasPrice.toString(),
-              gasLimit: params[0].gasLimit.toString(),
-            })
-          : await this.rpcResponse(method, ...params);
+      const txParams = params[0];
+      const data = (method === 'CreateTransaction' && isTxParams(txParams))
+        ? await this.rpcResponse('CreateTransaction', {
+          ...txParams,
+          amount: txParams.amount.toString(),
+          gasPrice: txParams.gasPrice.toString(),
+          gasLimit: txParams.gasLimit.toString(),
+        })
+        : await this.rpcResponse(method, ...params);
       return { result: data };
     } catch (err) {
       return {
@@ -55,41 +46,42 @@ class Provider {
 
   async rpcResponse(method, ...params) {
     switch (method) {
-      case "GetBalance":
-        let addr = params[0];
-        if (typeof addr === "object") {
-          addr = JSON.stringify(addr);
-        }
+      case 'GetBalance': {
+        const paramAddr = params[0];
+        const addr = typeof paramAddr === 'object'
+          ? JSON.stringify(paramAddr)
+          : paramAddr;
         return wallet.getBalance(addr);
-      case "GetNetworkId":
+      }
+      case 'GetNetworkId':
         return config.chainId.toString();
-      case "GetSmartContractCode":
-        return logic.processGetDataFromContract(params, this.options.dataPath, "code");
-      case "GetSmartContractState":
-        return logic.processGetDataFromContract(params, this.options.dataPath, "state");
-      case "GetSmartContractInit":
-        return logic.processGetDataFromContract(params, this.options.dataPath, "init");
-      case "GetSmartContracts":
+      case 'GetSmartContractCode':
+        return logic.processGetDataFromContract(params, this.options.dataPath, 'code');
+      case 'GetSmartContractState':
+        return logic.processGetDataFromContract(params, this.options.dataPath, 'state');
+      case 'GetSmartContractInit':
+        return logic.processGetDataFromContract(params, this.options.dataPath, 'init');
+      case 'GetSmartContracts':
         return logic.processGetSmartContracts(params, this.options.dataPath);
-      case "CreateTransaction":
+      case 'CreateTransaction':
         return logic.processCreateTxn(params, this.options);
-      case "GetTransaction":
+      case 'GetTransaction':
         return logic.processGetTransaction(params);
-      case "GetRecentTransactions":
+      case 'GetRecentTransactions':
         return logic.processGetRecentTransactions();
-      case "GetContractAddressFromTransactionID":
+      case 'GetContractAddressFromTransactionID':
         return logic.processGetContractAddressByTransactionID(params);
-      case "GetMinimumGasPrice":
+      case 'GetMinimumGasPrice':
         return config.blockchain.minimumGasPrice.toString();
-      case "KayaMine":
+      case 'KayaMine':
         return addBnum();
-      case "GetNumTxBlocks":
+      case 'GetNumTxBlocks':
         return getBlockNum();
       default:
         throw new RPCError(
-          "METHOD_NOT_FOUND: The method being requested is not available on this server",
+          'METHOD_NOT_FOUND: The method being requested is not available on this server',
           errorCodes.RPC_INVALID_REQUEST,
-          null
+          null,
         );
     }
   }

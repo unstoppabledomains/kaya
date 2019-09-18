@@ -22,13 +22,12 @@ const rimraf = require('rimraf');
 const yargs = require('yargs');
 
 const expressjs = express();
-const zCore = require('@zilliqa-js/core');
 const config = require('./config');
 const logic = require('./logic');
 const wallet = require('./components/wallet/wallet');
 const utils = require('./utilities');
 const initArgv = require('./argv');
-const Provider = require('./provider')
+const Provider = require('./provider');
 
 expressjs.use(bodyParser.json({ extended: false }));
 let argv;
@@ -40,7 +39,6 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 const logLabel = 'App.js';
-const errorCodes = zCore.RPCErrorCode;
 
 const wrapAsync = fn => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -123,11 +121,9 @@ const provider = new Provider(options);
 // Method handling logic for incoming POST request
 const handler = async (req, res) => {
   const { body } = req;
-  let result;
-  let addr;
   utils.logVerbose(logLabel, `Method specified ${body.method}`);
-  let data = await provider.send(body.method, ...body.params);
-  res.status(200).send({id: body.id, jsonrpc: body.jsonrpc, ...data});
+  const data = await provider.send(body.method, ...body.params);
+  res.status(200).send({ id: body.id, jsonrpc: body.jsonrpc, ...data });
   utils.logVerbose(logLabel, 'Sending response back to client');
 };
 
