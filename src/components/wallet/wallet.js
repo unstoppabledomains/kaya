@@ -247,7 +247,6 @@ module.exports = {
    */
 
   getBalance: (value) => {
-    logVerbose(logLabel, `Getting balance for ${value}`);
     if (!zUtils.validation.isAddress(value)) {
       throw new RPCError('Address size not appropriate', errorCodes.RPC_INVALID_ADDRESS_OR_KEY, null);
     }
