@@ -78,7 +78,6 @@ const runRemoteCheckerAsync = async (filepath) => {
   }
 };
 
-
 /**
  * Runs the remote interpreter (currently hosted by zilliqa)
  * @async
@@ -211,7 +210,12 @@ module.exports = {
     const statePath = `${dir}${contractAddr}_state.json`;
     const msgPath = `${dir}${payload.toAddr}_message.json`;
 
-    const standardOpt = ['-libdir', config.constants.smart_contract.SCILLA_LIB, '-gaslimit', payload.gasLimit];
+    const standardOpt = [
+      '-libdir',
+      config.constants.smart_contract.SCILLA_LIB,
+      '-gaslimit',
+      payload.gasLimit,
+    ];
     const initOpt = ['-init', initPath];
     const outputOpt = ['-o', outputPath];
     const codeOpt = ['-i', codePath];

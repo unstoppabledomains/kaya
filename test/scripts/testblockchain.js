@@ -67,19 +67,23 @@ async function testBlockchain() {
     console.log('Deployment Transaction ID: ', deployTx.id);
     console.log('Deployment Transaction Receipt: ', deployTx.txParams.receipt);
 
-    const callTx = await hello.call('setHello', [
+    const setHelloTx = await hello.call(
+      'setHello',
+      [
+        {
+          vname: 'msg',
+          type: 'String',
+          value: 'Hello World',
+        },
+      ],
       {
-        vname: 'msg',
-        type: 'String',
-        value: 'Hello World',
-      }],
-    {
-      version: VERSION,
-      amount: new BN(0),
-      gasPrice: new BN('1_000_000_000'),
-      gasLimit: Long.fromNumber(5000),
-    });
-    const { receipt } = callTx.txParams;
+        version: VERSION,
+        amount: new BN(0),
+        gasPrice: new BN('1_000_000_000'),
+        gasLimit: Long.fromNumber(5000),
+      },
+    );
+    const { receipt } = setHelloTx.txParams;
     console.log(receipt);
     const state = await hello.getState();
     console.log(state);

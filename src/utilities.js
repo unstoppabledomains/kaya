@@ -24,7 +24,6 @@ const yargs = require('yargs');
 const initArgv = require('./argv');
 const config = require('./config');
 
-
 // Configure the argument flags based on test environment
 let argv;
 if (process.env.NODE_ENV !== 'test') {
@@ -36,19 +35,18 @@ if (process.env.NODE_ENV !== 'test') {
 const logLabel = 'Utilities';
 
 module.exports = {
-
   /**
-  * Utility function to extract data from the working directory
-  * according to file extension (called from app.js)
-  * @param: { String } dataPath - Path to the working directory
-  * @param : { String } fileExtension - One of the following:
-  *           { code.scilla, state.json, init.json}
-  * @returns : { Object } - Data object for the specified file extension
-  */
+   * Utility function to extract data from the working directory
+   * according to file extension (called from app.js)
+   * @param: { String } dataPath - Path to the working directory
+   * @param : { String } fileExtension - One of the following:
+   *           { code.scilla, state.json, init.json}
+   * @returns : { Object } - Data object for the specified file extension
+   */
   getDataFromDir: (dataPath, fileExt) => {
     const files = glob.sync(`${dataPath}*_${fileExt}`);
     const result = {};
-    const isCode = (fileExt === 'code.scilla');
+    const isCode = fileExt === 'code.scilla';
     files.forEach((file) => {
       const fileData = fs.readFileSync(file, 'utf-8');
       result[file.slice(dataPath.length)] = isCode ? fileData : JSON.parse(fileData);
@@ -57,9 +55,9 @@ module.exports = {
   },
 
   /**
-  * Called when the user chooses to load from an existing file
-  * @param: { string } filepath to directory
-  */
+   * Called when the user chooses to load from an existing file
+   * @param: { string } filepath to directory
+   */
   loadData: (filePath) => {
     // FIXME : Validate the file
     const data = JSON.parse(fs.readFileSync(filePath));
@@ -109,15 +107,15 @@ module.exports = {
   },
 
   /**
-  * @returns : { string } : Datetime format (e.g. 20181001T154832 )
-  */
+   * @returns : { string } : Datetime format (e.g. 20181001T154832 )
+   */
   getDateTimeString: () => moment().format('YYYYMMDD_hhmmss'),
 
   /**
-  * Given a piece of scilla code, removes comments
-  * @param : { string } : scilla code
-  * @returns : { string } : scilla code without comments
-  */
+   * Given a piece of scilla code, removes comments
+   * @param : { string } : scilla code
+   * @returns : { string } : scilla code without comments
+   */
   removeComments: (str) => {
     let commentStart;
     let commentEnd;

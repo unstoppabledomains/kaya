@@ -32,7 +32,7 @@ const {
 const { logVerbose, consolePrint } = require('./utilities');
 const config = require('./config');
 
-const logLabel = ('LOGIC');
+const logLabel = 'LOGIC';
 
 const errorCodes = zCore.RPCErrorCode;
 
@@ -49,7 +49,8 @@ const contractAddressesByTransactionID = {}; // transaction hash => contract add
  */
 const computeContractAddr = (senderAddr) => {
   const userNonce = walletCtrl.getBalance(senderAddr).nonce;
-  return hashjs.sha256()
+  return hashjs
+    .sha256()
     .update(senderAddr, 'hex')
     .update(bytes.intToHexArray(userNonce, 16).join(''), 'hex')
     .digest('hex')
@@ -121,7 +122,6 @@ const checkTransactionJson = (data) => {
 };
 
 module.exports = {
-
   exportData: () => {
     const data = {};
     data.transactions = transactions;
@@ -136,14 +136,14 @@ module.exports = {
   },
 
   /**
-  * Function that handles the create transaction requests
-  * @async
-  * @method processCreateTxn
-  * @param { Object } data : Message object passed from client through server.js
-  * @param { String } dataPath : datapath where the state file is stored
-  * @returns { String } : Transaction hash
-  * Throws in the event of error. Caller should catch or delegate these errors
-  */
+   * Function that handles the create transaction requests
+   * @async
+   * @method processCreateTxn
+   * @param { Object } data : Message object passed from client through server.js
+   * @param { String } dataPath : datapath where the state file is stored
+   * @returns { String } : Transaction hash
+   * Throws in the event of error. Caller should catch or delegate these errors
+   */
   processCreateTxn: async (data, dataPath) => {
     logVerbose(logLabel, 'Processing transaction...');
     const isPayloadWellformed = checkTransactionJson(data);
@@ -391,14 +391,22 @@ module.exports = {
     const contractAddress = data[0];
     if (contractAddress == null || !validation.isAddress(contractAddress)) {
       consolePrint('Invalid request');
-      throw new RPCError('Address size not appropriate', errorCodes.RPC_INVALID_ADDRESS_OR_KEY, null);
+      throw new RPCError(
+        'Address size not appropriate',
+        errorCodes.RPC_INVALID_ADDRESS_OR_KEY,
+        null,
+      );
     }
     const filePath = `${dataPath}${contractAddress.toLowerCase()}_${fileType}.${ext}`;
     logVerbose(logLabel, `Retrieving data from ${filePath}`);
 
     if (!fs.existsSync(filePath)) {
       consolePrint(`No ${type} file found (Contract: ${contractAddress}`);
-      throw new RPCError('Address does not exist', errorCodes.RPC_INVALID_ADDRESS_OR_KEY, null);
+      throw new RPCError(
+        'Address does not exist',
+        errorCodes.RPC_INVALID_ADDRESS_OR_KEY,
+        null,
+      );
     }
 
     const responseData = fs.readFileSync(filePath, 'utf-8');
@@ -430,7 +438,11 @@ module.exports = {
     logVerbose(logLabel, `Getting smart contracts created by ${addr}`);
     if (addr === null || !validation.isAddress(addr)) {
       console.log('Invalid request');
-      throw new RPCError('Address size not appropriate', errorCodes.RPC_INVALID_ADDRESS_OR_KEY, null);
+      throw new RPCError(
+        'Address size not appropriate',
+        errorCodes.RPC_INVALID_ADDRESS_OR_KEY,
+        null,
+      );
     }
 
     const stateLists = [];
