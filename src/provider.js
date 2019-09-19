@@ -9,7 +9,7 @@ const { addBnum, getBlockNum } = require('./components/blockchain');
 const errorCodes = zCore.RPCErrorCode;
 
 class Provider {
-  constructor(options, fixtures) {
+  constructor(options) {
     this.options = options;
     this.middleware = {
       request: {
@@ -19,28 +19,19 @@ class Provider {
         use: () => {},
       },
     };
-
-    if (fixtures) wallet.loadAccounts(fixtures);
   }
 
   /**
    * Process the JSON RPC call
+   * @async
    * @param { String } method - Zilliqa RPC method name
    * @param { Array } params - Zilliqa RPC method parameters
-   * @returns { Object } - returned parameters
+   * @returns { Promise<Object> } - returned parameters
    */
   async send(method, ...params) {
     try {
-      const txParams = params[0];
-      const data = (method === 'CreateTransaction' && isTxParams(txParams))
-        ? await this.rpcResponse('CreateTransaction', {
-          ...txParams,
-          amount: txParams.amount.toString(),
-          gasPrice: txParams.gasPrice.toString(),
-          gasLimit: txParams.gasLimit.toString(),
-        })
-        : await this.rpcResponse(method, ...params);
-      return { result: data };
+      const result = await this.rpcResponse(method, ...params);
+      return { result };
     } catch (err) {
       return {
         error: {
@@ -52,6 +43,15 @@ class Provider {
     }
   }
 
+  /**
+   * Returns RPC response.
+   *
+   * @private
+   * @async
+   * @param { String } method - Zilliqa RPC method name
+   * @param { Array } params - Zilliqa RPC method parameters
+   * @returns { Object } - returned parameters
+   */
   async rpcResponse(method, ...params) {
     switch (method) {
       case 'GetBalance': {
@@ -71,8 +71,18 @@ class Provider {
         return logic.processGetDataFromContract(params, this.options.dataPath, 'init');
       case 'GetSmartContracts':
         return logic.processGetSmartContracts(params, this.options.dataPath);
-      case 'CreateTransaction':
-        return logic.processCreateTxn(params, this.options);
+      case 'CreateTransaction': {
+        const rawTxParam = params[0];
+        const txParams = isTxParams(rawTxParam)
+          ? [{
+            ...rawTxParam,
+            amount: rawTxParam.amount.toString(),
+            gasPrice: rawTxParam.gasPrice.toString(),
+            gasLimit: rawTxParam.gasLimit.toString(),
+          }]
+          : params;
+        return logic.processCreateTxn(txParams, this.options.dataPath);
+      }
       case 'GetTransaction':
         return logic.processGetTransaction(params);
       case 'GetRecentTransactions':
