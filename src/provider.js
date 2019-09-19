@@ -11,6 +11,14 @@ const errorCodes = zCore.RPCErrorCode;
 class Provider {
   constructor(options, fixtures) {
     this.options = options;
+    this.middleware = {
+      request: {
+        use: () => {},
+      },
+      response: {
+        use: () => {},
+      },
+    };
 
     if (fixtures) wallet.loadAccounts(fixtures);
   }
