@@ -396,8 +396,8 @@ module.exports = {
    * @param { String } type - enum of either data, init or state
    */
   processGetDataFromContract: (data, dataPath, type) => {
-    const fileType = type.trim().toLowerCase();
-    if (!['init', 'state', 'code'].includes(fileType)) {
+    let fileType = type.trim().toLowerCase();
+    if (!['init', 'state', 'code', 'substate'].includes(fileType)) {
       const err = new RPCError(
         'INVALID_PARAMS: Invalid method parameters (invalid name and/or type) recognised: Invalid options flag',
         errorCodes.RPC_INVALID_PARAMS,
@@ -406,6 +406,8 @@ module.exports = {
       throw err;
     }
     const ext = fileType === 'code' ? 'scilla' : 'json';
+    const isSubState = fileType === 'substate';
+    fileType = fileType === 'substate' ? 'state' : fileType;
     logVerbose(logLabel, `Getting SmartContract ${fileType}`);
 
     if (!data) {
@@ -436,6 +438,16 @@ module.exports = {
     if (fileType === 'code') {
       return { code: responseData };
     }
+
+    if (isSubState) {
+      logVerbose(logLabel, `Retrieving subState ${data[1]} from ${filePath}`);
+      if (data.length < 2) { return JSON.parse(responseData); }
+      const variableName = data[1];
+      const subResponseData = JSON.parse(responseData).find(v => v.vname === variableName);
+      return { [variableName]: subResponseData };
+    }
+
+
     // handles init and state json after parsing
     return JSON.parse(responseData);
   },
