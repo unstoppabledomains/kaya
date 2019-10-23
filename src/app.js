@@ -18,6 +18,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const express = require('express');
 const fs = require('fs');
+const rimraf = require('rimraf');
 const yargs = require('yargs');
 
 const expressjs = express();
@@ -167,10 +168,9 @@ process.on('SIGINT', () => {
 
     utils.consolePrint('Save successful');
   }
-  // TODO: need to uncomment this before merging.
   // remove files from the db_path
-  // rimraf.sync(`${options.dataPath}*`);
-  // console.log(`Files from ${options.dataPath} removed. Shutting down now.`);
+  rimraf.sync(`${options.dataPath}*`);
+  console.log(`Files from ${options.dataPath} removed. Shutting down now.`);
   process.exit(0);
 });
 
