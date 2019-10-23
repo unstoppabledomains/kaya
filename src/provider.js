@@ -4,7 +4,6 @@ const wallet = require('./components/wallet/wallet');
 const config = require('./config');
 const { RPCError } = require('./components/CustomErrors');
 const { addBnum, getBlockNum } = require('./components/blockchain');
-const { logVerbose } = require('./utilities');
 
 const errorCodes = zCore.RPCErrorCode;
 
@@ -53,8 +52,6 @@ class Provider {
    * @returns { Object } - returned parameters
    */
   async rpcResponse(method, ...params) {
-    logVerbose('debug', method);
-    console.log(method);
     switch (method) {
       case 'GetBalance': {
         const paramAddr = params[0];
