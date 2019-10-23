@@ -124,7 +124,7 @@ describe('Smart Contract related methods Tests', () => {
       });
   });
 
-  test(' should correctly return zero-address error', async (done) => {
+  test('GetSmartContractState should correctly return zero-address error', async (done) => {
     request(app.expressjs).post('/')
       .send(makeQuery('GetSmartContractState', '50e9247a39e87a734355a203666ff7415c8a0802'))
       .then((response) => {
